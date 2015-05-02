@@ -1,7 +1,5 @@
 from pymc import *
-from numpy.random import random
 import numpy as np
-from sets import Set
 from math import sqrt
 
 wealth_modifier = [0.2, 1.0, 1.5]
