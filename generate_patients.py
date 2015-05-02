@@ -57,6 +57,11 @@ def tardiness_logp(value, remembered, on_time):
 	else:
 		return 0 if value == 30 else -np.inf
 
+def tardiness(patient, appt_time):
+	remembered = Stochastic(name='remembered', doc='Did the patient remember?', parents = {'gender': patient[0], 'age' : patient[1], 'wealth': patient[2], 'appt_time': appt_time}, random=remembered_rand, logp=remembered_logp, dtype=int)
+	on_time = Stochastic(name='on_time', doc='Did the patient come on time?', parents = {'gender': patient[0], 'age' : patient[1], 'wealth': patient[2], 'appt_time': appt_time}, random=on_time_rand, logp=on_time_logp, dtype=int)
+	return Stochastic(name='tardiness', doc='How late was the patient?', parents = {'remembered': remembered, 'on_time': on_time}, random=tardiness_rand, logp=tardiness_logp, dtype=int)
+
 patients = np.ndarray(shape=(N_PATIENTS, 3), dtype=object)
 
 for i in range(N_PATIENTS):
@@ -68,8 +73,5 @@ if __name__ == '__main__':
 	appointments = np.ndarray(shape=(N_PATIENTS, 2), dtype=object)
 	for i in range(N_PATIENTS):
 		appointments[i][0] = DiscreteUniform('appt_%i' % i, lower=8, upper=18)
-		remembered = Stochastic(name='remembered_%i' % i, doc='Did the patient remember?', parents = {'gender': patients[i][0], 'age' : patients[i][1], 'wealth': patients[i][2], 'appt_time': appointments[i][0]}, random=remembered_rand, logp=remembered_logp, dtype=int)
-		on_time = Stochastic(name='on_time_%i' % i, doc='Did the patient come on time?', parents = {'gender': patients[i][0], 'age' : patients[i][1], 'wealth': patients[i][2], 'appt_time': appointments[i][0]}, random=on_time_rand, logp=on_time_logp, dtype=int)
-		appointments[i][1] = Stochastic(name='tardiness_%i' % i, doc='How late was the patient?', parents = {'remembered': remembered, 'on_time': on_time}, random=tardiness_rand, logp=tardiness_logp, dtype=int)
-
+		appointments[i][1] = tardiness(patients[i], appointments[i][0])
 	numpy.savetxt('patients.csv', np.concatenate((patients, appointments), axis=1), fmt='%i', delimiter=',', header='gender,age,wealth,appointment time,tardiness')
