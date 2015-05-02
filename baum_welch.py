@@ -5,18 +5,26 @@ from pymc import *
 def time_str(time):
 	return '%i:%02i' % (time/60, time % 60)
 
-appointment_length = Poisson('appt_length', mu=20)
 doctor_busy = False
+wait_times = [0 for _ in range(N_PATIENTS)]
+idle_time = 0
 
+
+####### SCHEDULING
 schedule = {}
 schedule[8*60] = [patients[0], patients[1]]
-for step in range(1, 10 * 6):
-	t = 8*60 + step * 10
+for step in range(1, 600 / 20):
+	t = 8*60 + step * 20
 	schedule[t] = [patients[step + 1]]
+####### SCHEDULING
+
+
 arrivals = {}
 departures = {}
 patient_queue = deque()
-for t in range(8*60, 20 * 60 + 1, 1):
+t = 8*60
+while t < 18 * 60 or len(patient_queue) > 0:
+	t += 1
 	t_s = time_str(t)
 	changed = False
 	if t in schedule:
@@ -45,13 +53,22 @@ for t in range(8*60, 20 * 60 + 1, 1):
 				patient_queue.append(patient)
 				changed = True
 	if t in departures:
-		print '{0} -- Doctor is finished with a patient'.format(t_s)
+		print '{0} -- Doctor is finished with a patient after {1} minutes'.format(t_s, departures[t])
 		doctor_busy = False
-	if not doctor_busy and len(patient_queue) > 0:
-		print '{0} -- Doctor takes on a new patient'.format(t_s)
-		patient_queue.popleft()
-		doctor_busy = True
-		departures[t+appointment_length.value] = 1
-		changed = True
+	if not doctor_busy:
+		if len(patient_queue) > 0:
+			patient = patient_queue.popleft()
+			print '{0} -- Doctor takes on patient {1}'.format(t_s, patient[0])
+			doctor_busy = True
+			length = Poisson('appt_length', mu=20).value
+			departures[t+length] = length
+			changed = True
+		else:
+			idle_time += 1
+	for patient in patient_queue:
+		wait_times[patient[0]] += 1
 	if changed:
 		print 'Queue now has {0} patients waiting'.format(len(patient_queue))
+
+total_wait = np.array(wait_times).sum()
+print '\nDoctor idle time = {0}, total patient wait time = {1}, final cost = {2}'.format(idle_time, total_wait, 10 * idle_time + total_wait)
