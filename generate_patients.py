@@ -57,15 +57,19 @@ def tardiness_logp(value, remembered, on_time):
 	else:
 		return 0 if value == 30 else -np.inf
 
-patients = np.ndarray(shape=(N_PATIENTS, 5), dtype=object)
+patients = np.ndarray(shape=(N_PATIENTS, 3), dtype=object)
 
 for i in range(N_PATIENTS):
 	patients[i][0] = Bernoulli('gender_%i' % i, p=0.5)
 	patients[i][1] = Normal('age_%i' % i, mu=40, tau=0.01)
 	patients[i][2] = DiscreteUniform('wealth_%i' % i, lower=0, upper=2)
-	patients[i][3] = DiscreteUniform('appt_%i' % i, lower=8, upper=18)
-	remembered = Stochastic(name='remembered_%i' % i, doc='Did the patient remember?', parents = {'gender': patients[i][0], 'age' : patients[i][1], 'wealth': patients[i][2], 'appt_time': patients[i][3]}, random=remembered_rand, logp=remembered_logp, dtype=int)
-	on_time = Stochastic(name='on_time_%i' % i, doc='Did the patient come on time?', parents = {'gender': patients[i][0], 'age' : patients[i][1], 'wealth': patients[i][2], 'appt_time': patients[i][3]}, random=on_time_rand, logp=on_time_logp, dtype=int)
-	patients[i][4] = Stochastic(name='tardiness_%i' % i, doc='How late was the patient?', parents = {'remembered': remembered, 'on_time': on_time}, random=tardiness_rand, logp=tardiness_logp, dtype=int)
 
-numpy.savetxt('patients.csv', patients, fmt='%i', delimiter=',', header='gender,age,wealth,appointment time,tardiness')
+if __name__ == '__main__':
+	appointments = np.ndarray(shape=(N_PATIENTS, 2), dtype=object)
+	for i in range(N_PATIENTS):
+		appointments[i][0] = DiscreteUniform('appt_%i' % i, lower=8, upper=18)
+		remembered = Stochastic(name='remembered_%i' % i, doc='Did the patient remember?', parents = {'gender': patients[i][0], 'age' : patients[i][1], 'wealth': patients[i][2], 'appt_time': appointments[i][0]}, random=remembered_rand, logp=remembered_logp, dtype=int)
+		on_time = Stochastic(name='on_time_%i' % i, doc='Did the patient come on time?', parents = {'gender': patients[i][0], 'age' : patients[i][1], 'wealth': patients[i][2], 'appt_time': appointments[i][0]}, random=on_time_rand, logp=on_time_logp, dtype=int)
+		appointments[i][1] = Stochastic(name='tardiness_%i' % i, doc='How late was the patient?', parents = {'remembered': remembered, 'on_time': on_time}, random=tardiness_rand, logp=tardiness_logp, dtype=int)
+
+	numpy.savetxt('patients.csv', np.concatenate((patients, appointments), axis=1), fmt='%i', delimiter=',', header='gender,age,wealth,appointment time,tardiness')
