@@ -11,6 +11,7 @@ def time_str(time):
 doctor_busy = False
 wait_times = [0 for _ in range(gp.N_PATIENTS)]
 idle_time = 0
+overtime = 0
 
 
 ####### SCHEDULING
@@ -140,9 +141,11 @@ while not all(satisfied): # make sure all patients are seen
                         wait_times[patient[0]] += 1
                 if changed:
                         print 'Queue now has {0} patients waiting'.format(len(patient_queue))
+                if t >= 18*60:
+                        overtime += 1
                 t += 1
         print '----- {0}, END OF DAY {1} -----'.format(time_str(t), day)
         day += 1
 
 total_wait = sum(wait_times)
-print '\nDoctor idle time = {0}, total patient wait time = {1}, final cost = {2}'.format(idle_time, total_wait, 10 * idle_time + total_wait)
+print '\nDoctor idle time = {0}, doctor overtime = {1}, total patient wait time = {2}, final cost = {3}'.format(idle_time, overtime, total_wait, overtime * 20 + 10 * idle_time + total_wait)
