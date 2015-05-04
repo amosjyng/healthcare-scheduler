@@ -14,20 +14,22 @@ idle_time = 0
 ####### SCHEDULING
 days = [{}]
 day = 0 # current day, don't touch when scheduling!
+t = 8*60 # current time, also don't touch!
 def schedule_patient(patient):
         schedule_day = day
+        schedule_time = t + 20
         while True:
                 schedule = days[schedule_day]
-                t = 8*60
-                while t < 18*60 - 20:
-                        if t not in schedule:
-                                schedule[t] = [patient]
-                                return schedule_day, t
-                        elif t == 8*60 and len(schedule[t]) < 2:
+                while schedule_time < 18*60 - 20:
+                        if schedule_time not in schedule:
+                                schedule[schedule_time] = [patient]
+                                return schedule_day, schedule_time
+                        elif schedule_time == 8*60 and len(schedule[schedule_time]) < 2:
                                 schedule[t].append(patient)
-                                return schedule_day, t
-                        t += 20
+                                return schedule_day, schedule_time
+                        schedule_time += 20
                 schedule_day += 1
+                schedule_time = 8*60
                 if len(days) == schedule_day:
                         days.append({})
 
