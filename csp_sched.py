@@ -2,7 +2,7 @@ import generate_patients as gp
 from collections import deque
 import pymc as mc
 import sys
-import constraint
+import logilab.constraint as csp
 import math
 
 def time_str(time):
@@ -46,11 +46,23 @@ def schedule_patient(patient):
                 if len(days) == schedule_day:
                         days.append({})
 
-problem = constraint.Problem()
+variables = []
+domains = {}
 max_sched_days = int(math.ceil(gp.N_PATIENTS / (10 * 3.0)))
 for patient in gp.patients:
-        problem.addVariable(patient[0], get_pref_times(patient, max_sched_days - 1))
-problem.addConstraint(constraint.AllDifferentConstraint())
+        p = 'p' + str(patient[0])
+        variables.append(p)
+        domains[p] = csp.fd.FiniteDomain(get_pref_times(patient, max_sched_days - 1))
+constraints = []
+for patient1 in gp.patients:
+        for patient2 in gp.patients:
+                if patient2[0] > patient1[0]:
+                        p1 = 'p' + str(patient1[0])
+                        p2 = 'p' +  str(patient2[0])
+                        constraints.append(csp.fd.make_expression((p1,p2), '%s != %s' % (p1,p2)))
+problem = csp.Repository(variables, domains, constraints)
+solutions = csp.Solver().solve(problem)
+print solutions
 print 'Solving CSP...'
 for patient_id, sched in problem.getSolutions()[0].items():
         sched_day, sched_time = sched
