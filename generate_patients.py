@@ -29,10 +29,10 @@ def will_go_var(patient, appt_time):
 
 def will_still_go_rand(will_go, wait_time):
         if will_go:
-                if wait_time <= 40:
+                if wait_time <= 20:
                         return 1
                 else:
-                        return Bernoulli('w', p=0.01)
+                        return Bernoulli('w', p=0.001)
         else:
                 return 0
 
@@ -80,8 +80,9 @@ def tardiness_logp(value, will_go, on_time):
 	else:
 		return 0 if value == 30 else -np.inf
 
-def tardiness(patient, appt_time):
-	will_go = will_go_var(patient, appt_time)
+def tardiness(patient, appt_time, will_go=None):
+        if will_go is None:
+                will_go = will_go_var(patient, appt_time)
 	on_time = Stochastic(name='on_time', doc='Does the patient come on time?', parents = {'gender': patient[1], 'age' : patient[2], 'wealth': patient[3], 'preferred': patient[4], 'appt_time': appt_time}, random=on_time_rand, logp=on_time_logp, dtype=int)
 	return Stochastic(name='tardiness', doc='How late was the patient?', parents = {'will_go': will_go, 'on_time': on_time}, random=tardiness_rand, logp=tardiness_logp, dtype=int)
 

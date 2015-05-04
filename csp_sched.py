@@ -17,22 +17,23 @@ idle_time = 0
 days = [{}]
 day = 0 # current day, don't touch when scheduling!
 t = 8*60 # current time, also don't touch!
+appt_interval=10
 def get_pref_times(patient, max_day):
         times = []
-        preferred = (patient[4] - 8*60) / 10
-        preferred = preferred * 10 + 8*60
+        preferred = (patient[4] - 8*60) / appt_interval
+        preferred = preferred * appt_interval + 8*60
         for sched_day in range(day, max_day + 1):
                 begin_time = preferred - 20
                 begin_time = begin_time.value if begin_time.value >= (8*60) else (8*60)
                 end_time = preferred + 20
                 end_time = end_time if end_time <= 18*60-20 else 18*60-20
-                for sched_time in range(begin_time, end_time + 1, 10):
+                for sched_time in range(begin_time, end_time + 1, appt_interval):
                         times.append((sched_day, sched_time))
         return times
 
 def schedule_patient(patient):
         schedule_day = day
-        schedule_time = t + 10
+        schedule_time = t + appt_interval
         while True:
                 schedule = days[schedule_day]
                 while schedule_time <= 18*60 - 20:
@@ -42,13 +43,13 @@ def schedule_patient(patient):
                         elif schedule_time == 8*60 and len(schedule[schedule_time]) < 2:
                                 schedule[schedule_time].append(patient)
                                 return schedule_day, schedule_time
-                        schedule_time += 10
+                        schedule_time += appt_interval
                 schedule_day += 1
                 schedule_time = 8*60
                 if len(days) == schedule_day:
                         days.append({})
 
-max_sched_days = int(math.ceil(gp.N_PATIENTS / (10 * 60 / 10.0)))
+max_sched_days = int(math.ceil(gp.N_PATIENTS / (10 * 60 / float(appt_interval))))
 while max_sched_days >= len(days):
         days.append({})
 times = set()
@@ -64,7 +65,6 @@ for patient in gp.patients:
         if not found:
                 times.add(schedule_patient(patient))
 ####### SCHEDULING
-
 
 satisfied = [False for _ in gp.patients]
 while not all(satisfied): # make sure all patients are seen
@@ -94,9 +94,19 @@ while not all(satisfied): # make sure all patients are seen
                 if t+30 in schedule:
                         estimated_wait = len(patient_queue) * 20
                         for future_patient in schedule[t+30]:
-                                if gp.will_still_go_var(gp.will_go_var(future_patient, t+30), estimated_wait).value == 0:
+                                wg = gp.will_go_var(future_patient, t+30)
+                                if gp.will_still_go_var(wg, estimated_wait).value == 0:
                                         resched_day, resched_time = schedule_patient(future_patient)
                                         print 'Due to long wait times, Patient {0} is rescheduled to arrive at {1} on day {2} instead of {3} today'.format(future_patient[0], time_str(resched_time), resched_day, time_str(t+30))
+                                        schedule[t+30].remove(future_patient)
+                                else:
+                                        tard = gp.tardiness(patient, t, wg).value
+                                        if (t+tard+30) not in arrivals:
+                                                arrivals[t+30+tard] = []
+                                        arrivals[t+30+tard].append((tard, future_patient))
+                                        if tard == 30:
+                                                print 'WTF'
+                                                sys.exit(1)
                                         schedule[t+30].remove(future_patient)
                 if t in arrivals:
                         for tard, patient in arrivals[t]:
