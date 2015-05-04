@@ -1,6 +1,7 @@
 from generate_patients import *
 from collections import deque
 from pymc import *
+from constraint import *
 
 def time_str(time):
 	return '%i:%02i' % (time/60, time % 60)
@@ -12,10 +13,26 @@ idle_time = 0
 
 ####### SCHEDULING
 schedule = {}
-schedule[8*60] = [patients[0], patients[1]]
-for step in range(1, 600 / 20):
-	t = 8*60 + step * 20
-	schedule[t] = [patients[step + 1]]
+##schedule[8*60] = [patients[0], patients[1]]
+##for step in range(1, 600 / 20):
+##	t = 8*60 + step * 20
+##	schedule[t] = [patients[step + 1]]
+
+## Extract Patient Preferences
+
+## Use Model from Regression
+for patient in patients
+        L= -3.0541 + 0.4712*gender(patient)+ 0.0808*age(patient)-0.9001*wealth(patient)-0.1154*appttime(patient)
+        Prediction[patient]=1/(1+e^-L)
+
+## Use CSP
+problem = Problem()
+for patient in patients
+        problem.addVariable("patientid", [preferred start])
+problem.addConstraint()
+
+
+
 ####### SCHEDULING
 
 
