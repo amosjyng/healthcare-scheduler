@@ -16,6 +16,7 @@ idle_time = 0
 ####### SCHEDULING
 days = [{}]
 day = 0 # current day, don't touch when scheduling!
+t = 0 # current time, also don't touch!
 def get_pref_times(patient, max_day):
         times = []
         preferred = (patient[4] - 8*60) / 20
@@ -31,33 +32,33 @@ def get_pref_times(patient, max_day):
 
 def schedule_patient(patient):
         schedule_day = day
+        schedule_time = t
         while True:
                 schedule = days[schedule_day]
-                t = 8*60
-                while t < 18*60 - 20:
-                        if t not in schedule:
-                                schedule[t] = [patient]
-                                return schedule_day, t
-                        elif t == 8*60 and len(schedule[t]) < 2:
+                
+                while schedule_time < 18*60 - 20:
+                        if schedule_time not in schedule:
+                                schedule[schedule_time] = [patient]
+                                return schedule_day, schedule_time
+                        elif schedule_time == 8*60 and len(schedule[schedule_time]) < 2:
                                 schedule[t].append(patient)
-                                return schedule_day, t
-                        t += 20
+                                return schedule_day, schedule_time
+                        schedule_time += 20
                 schedule_day += 1
+                schedule_time = 8*60
                 if len(days) == schedule_day:
                         days.append({})
-
-problem = constraint.Problem()
 max_sched_days = int(math.ceil(gp.N_PATIENTS / (10 * 3.0)))
+times = set()
 for patient in gp.patients:
-        problem.addVariable(patient[0], get_pref_times(patient, max_sched_days - 1))
-problem.addConstraint(constraint.AllDifferentConstraint())
-print 'Solving CSP...'
-for patient_id, sched in problem.getSolutions()[0].items():
-        sched_day, sched_time = sched
-        patient = gp.patients[patient_id]
-        while sched_day >= len(days):
-                days.append({})
-        days[sched_day][sched_time] = [patient]
+        for pref in get_pref_times(patient, max_sched_days - 1):
+                if pref not in times:
+                        sched_day, sched_time = pref
+                        while sched_day >= len(days):
+                                days.append({})
+                        days[sched_day][sched_time] = [patient]
+                        times.add(pref)
+                        break
 ####### SCHEDULING
 
 
