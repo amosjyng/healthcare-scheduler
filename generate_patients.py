@@ -4,7 +4,7 @@ from math import sqrt, exp, fabs
 
 wealth_modifier = [0.2, 1.0, 1.5]
 
-N_PATIENTS = 100
+N_PATIENTS = 10
 
 
 def will_go_rand(gender, age, wealth, preferred, appt_time):
