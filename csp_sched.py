@@ -23,7 +23,7 @@ def get_pref_times(patient, max_day):
         preferred = preferred * 10 + 8*60
         for sched_day in range(day, max_day + 1):
                 begin_time = preferred - 20
-                begin_time = begin_time if begin_time >= 8*60 else 8*60
+                begin_time = begin_time.value if begin_time.value >= (8*60) else (8*60)
                 end_time = preferred + 20
                 end_time = end_time if end_time <= 18*60-20 else 18*60-20
                 for sched_time in range(begin_time, end_time + 1, 10):
@@ -35,9 +35,12 @@ def schedule_patient(patient):
         schedule_time = t + 10
         while True:
                 schedule = days[schedule_day]
-                while schedule_time < 18*60 - 20:
+                while schedule_time <= 18*60 - 20:
                         if schedule_time not in schedule:
                                 schedule[schedule_time] = [patient]
+                                return schedule_day, schedule_time
+                        elif schedule_time == 8*60 and len(schedule[schedule_time]) < 2:
+                                schedule[schedule_time].append(patient)
                                 return schedule_day, schedule_time
                         schedule_time += 10
                 schedule_day += 1
@@ -45,7 +48,7 @@ def schedule_patient(patient):
                 if len(days) == schedule_day:
                         days.append({})
 
-max_sched_days = int(math.ceil(gp.N_PATIENTS / (10 * 3.0)))
+max_sched_days = int(math.ceil(gp.N_PATIENTS / (10 * 60 / 10.0)))
 while max_sched_days >= len(days):
         days.append({})
 times = set()
@@ -55,13 +58,11 @@ for patient in gp.patients:
                 if pref not in times:
                         found = True
                         sched_day, sched_time = pref
-                        
                         days[sched_day][sched_time] = [patient]
                         times.add(pref)
                         break
         if not found:
-                print patient[0]
-                sched_day, sched_time = schedule_patient(patient)
+                times.add(schedule_patient(patient))
 ####### SCHEDULING
 
 
@@ -124,7 +125,6 @@ while not all(satisfied): # make sure all patients are seen
                         print 'Queue now has {0} patients waiting'.format(len(patient_queue))
                 t += 1
         print '----- {0}, END OF DAY {1} -----'.format(time_str(t), day)
-        print satisfied
         day += 1
 
 total_wait = sum(wait_times)
