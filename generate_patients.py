@@ -23,6 +23,31 @@ def will_go_logp(value, gender, age, wealth, preferred, appt_time):
 	base_p = pow(base_p, 1 / 10.0)
 	return bernoulli_like(value, base_p)
 
+
+def will_go_var(patient, appt_time):
+        return Stochastic(name='will_go', doc='Does the patient decide to go?', parents = {'gender': patient[1], 'age' : patient[2], 'wealth': patient[3], 'preferred': patient[4], 'appt_time': appt_time}, random=will_go_rand, logp=will_go_logp, dtype=int)
+
+def will_still_go_rand(will_go, wait_time):
+        if will_go:
+                if wait_time <= 40:
+                        return 1
+                else:
+                        return Bernoulli('w', p=0.01)
+        else:
+                return 0
+
+def will_still_go_logp(value, will_go, wait_time):
+        if will_go:
+                if wait_time <= 20:
+                        return 0 if value == 1 else -np.inf
+                else:
+                        return bernoulli_like(value, 0.01)
+        else:
+                return 0 if value == 0 else -np.inf
+
+def will_still_go_var(will_go, wait_time):
+        return Stochastic(name='will_still_go', doc='Does the patient still want to go given the wait time?', parents = {'will_go': will_go, 'wait_time': wait_time}, random=will_still_go_rand, logp=will_still_go_logp, dtype=int)
+
 def on_time_rand(gender, age, wealth, preferred, appt_time):
 	base_p = 0.5
 	base_p *= wealth_modifier[wealth]
@@ -56,7 +81,7 @@ def tardiness_logp(value, will_go, on_time):
 		return 0 if value == 30 else -np.inf
 
 def tardiness(patient, appt_time):
-	will_go = Stochastic(name='will_go', doc='Does the patient decide to go?', parents = {'gender': patient[1], 'age' : patient[2], 'wealth': patient[3], 'preferred': patient[4], 'appt_time': appt_time}, random=will_go_rand, logp=will_go_logp, dtype=int)
+	will_go = will_go_var(patient, appt_time)
 	on_time = Stochastic(name='on_time', doc='Does the patient come on time?', parents = {'gender': patient[1], 'age' : patient[2], 'wealth': patient[3], 'preferred': patient[4], 'appt_time': appt_time}, random=on_time_rand, logp=on_time_logp, dtype=int)
 	return Stochastic(name='tardiness', doc='How late was the patient?', parents = {'will_go': will_go, 'on_time': on_time}, random=tardiness_rand, logp=tardiness_logp, dtype=int)
 

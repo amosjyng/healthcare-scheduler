@@ -91,6 +91,13 @@ while not all(satisfied): # make sure all patients are seen
                                         changed = True
                                 else:
                                         raise
+                if t+30 in schedule:
+                        estimated_wait = len(patient_queue) * 20
+                        for future_patient in schedule[t+30]:
+                                if gp.will_still_go_var(gp.will_go_var(future_patient, t+30), estimated_wait).value == 0:
+                                        resched_day, resched_time = schedule_patient(future_patient)
+                                        print 'Due to long wait times, Patient {0} is rescheduled to arrive at {1} on day {2} instead of {3} today'.format(future_patient[0], time_str(resched_time), resched_day, time_str(t+30))
+                                        schedule[t+30].remove(future_patient)
                 if t in arrivals:
                         for tard, patient in arrivals[t]:
                                 if tard == 30:
@@ -102,7 +109,7 @@ while not all(satisfied): # make sure all patients are seen
                                         changed = True
                 if t in departures:
                         length, patient = departures[t]
-                        print '{0} -- Doctor is finished with patient {2} after {1} minutes'.format(t_s, length, patient[0])
+                        print '{0} -- Doctor is finished with Patient {2} after {1} minutes'.format(t_s, length, patient[0])
                         if satisfied[patient[0]]:
                                 print 'ERROR -- Patient {0} is being seen a second time!'.format(patient[0])
                                 sys.exit(1)
@@ -112,7 +119,7 @@ while not all(satisfied): # make sure all patients are seen
                 if not doctor_busy:
                         if len(patient_queue) > 0:
                                 patient = patient_queue.popleft()
-                                print '{0} -- Doctor takes on patient {1}'.format(t_s, patient[0])
+                                print '{0} -- Doctor takes on Patient {1}'.format(t_s, patient[0])
                                 doctor_busy = True
                                 length = gp.Poisson('appt_length', mu=20).value
                                 departures[t+length] = (length,patient)
