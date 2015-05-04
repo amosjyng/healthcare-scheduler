@@ -10,7 +10,7 @@ N_PATIENTS = 100
 def will_go_rand(gender, age, wealth, preferred, appt_time):
 	base_p = 0.8
 	base_p *= wealth_modifier[wealth]
-        base_p *= 1.5 / (fabs(preferred - appt_time) / 60.0)
+        base_p *= 1.5 / ((1 + fabs(1 + preferred - appt_time)) / 60.0)
 	base_p *= (100 - age + 20) / 100.0
 	base_p = pow(base_p, 1 / 10.0)
 	return Bernoulli('w', p=base_p)
@@ -18,7 +18,7 @@ def will_go_rand(gender, age, wealth, preferred, appt_time):
 def will_go_logp(value, gender, age, wealth, preferred, appt_time):
 	base_p = 0.5
 	base_p *= wealth_modifier[wealth]
-        base_p *= 1.5 / (fabs(preferred - appt_time) / 60.0)
+        base_p *= 1.5 / ((1 + fabs(1 + preferred - appt_time)) / 60.0)
 	base_p *= (100 - age + 20) / 100.0
 	base_p = pow(base_p, 1 / 10.0)
 	return bernoulli_like(value, base_p)
@@ -26,14 +26,14 @@ def will_go_logp(value, gender, age, wealth, preferred, appt_time):
 def on_time_rand(gender, age, wealth, preferred, appt_time):
 	base_p = 0.5
 	base_p *= wealth_modifier[wealth]
-        base_p *= 1.5 / (fabs(preferred - appt_time) / 60.0)
+        base_p *= 1.5 / ((1 + fabs(1 + preferred - appt_time)) / 60.0)
 	base_p *= (100 - age + 20) / 100.0
 	return Bernoulli('o', p=base_p)
 
 def on_time_logp(value, gender, age, wealth, preferred, appt_time):
 	base_p = 0.5
 	base_p *= wealth_modifier[wealth]
-        base_p *= 1.5 / (fabs(preferred - appt_time) / 60.0)
+        base_p *= 1.5 / ((1 + fabs(preferred - appt_time)) / 60.0)
 	base_p *= (100 - age + 30) / 100.0
 	return bernoulli_like(value, base_p)
 
