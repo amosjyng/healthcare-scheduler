@@ -1,0 +1,151 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{nips13submit_e,times}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{multirow}
+%\documentstyle[nips13submit_09,times,art10]{article} % For LaTeX 2.09
+
+
+\title{Healthcare Scheduling: Instilling Flexibility and Adaptation}
+
+
+\author{
+Faisal Baqai\\
+Department of Biological Sciences\\
+\texttt{fbaqai@andrew.cmu.edu} \\
+\And
+Amos Ng \\
+Language Technologies Institute \\
+\texttt{ajng@andrew.cmu.edu} \\
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\nipsfinalcopy % Uncomment for camera-ready version
+
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+Both patients and physicians encounter problems in healthcare appointment scheduling. Patients abhor wait times; physicians abhor idle time. Previous work on this has either not taken into account both (somewhat diametric) sides of the problem, or did not model for individual patient likelihood to not show up. In this project, we show how a patient preference heuristic, used along with overbooking and real-time patient notifications and dynamic rescheduling, can be used to schedule appointments that perform better (in terms of minimized physician idleness and overtime, as well as minimized patient wait times) than Bailey-Welch.
+\end{abstract}
+
+\section{Introduction}
+
+Current healthcare appointment scheduling systems experience major problems with ``no-shows'' -- patients who don't show up to their apppointments, without informing hospital staff ahead of time. This wastes valuable physician time that could have been spent taking care of other patients, thus causing physician resentment towards patients. In fact, no-shows at hospital clinics cost the healthcare industry in America an estimated \$150 billion per year. The causes are partially due to the fact that patients are less likely to show up if certain factors (such as their temporal preferences or living locations) are not taken into account. As such, the standard practice of today -- imposing a small fine for no-shows -- is largely ineffective. Instead, improving scheduling can improve the chances of a patient showing up by up to one third, according to some studies. Reminding patients shortly before the appointment also noticeably decreases no-show rates.\cite{toland2013}
+
+On the other side of the problem, even patients who do show up on time are often forced to wait for doctors to finish checking up on earlier patients. As might be expected, this also creates resentment on the patients' end. Some 847 million hours are spent collectively by ``Americans over the age of 15'' each year waiting for their appointments.\cite{krueger2009} This phenomenon can happen even with good scheduling, because some appointments take longer than expected.
+
+Essentially, there are two opposing sides to the problem: patients want to wait less, while doctors want to treat as many patients as possible in a single day.\cite{koeleman2012} If appointments are spread out more, patients won't have to wait as much, but physicians will treat far fewer patients per day. On the other hand, if appointments are crammed together and even overbooked, patients will have to wait a lot longer, but physicians will be working throughout the day to treat patients.
+
+
+\subsection{Prior work}
+
+The most famous scheduling algorithm, the eponymous Bailey-Welch rule, was discovered in 1952. The rule essentially calls for two patients to be scheduled at the start of the day, and then for appointments to be spaced evenly throughout the rest of the day.\cite{welch1952} Its fame is well-deserved, as it has been found to be quite versatile, and in certain situations it has even been shown to be the most optimal solution.\cite{kaandorp2007}
+
+Some more recent researchers, Y. Huang et al., have attempted to use various patient and physician features -- such gender, financial status, doctor patient-relationship quality, doctor specialty, and average clinic wait time -- to calculate an individualized probability of no-showing for each patient. Overbooking of patients likely to not show up was then used to shield clinics from the cost of no-shows. However, this socially suboptimal solution of course only solves one side of the problem -- it can increase wait times when patients unexpectedly do show up.\cite{huang2012}
+
+Kaandorp et al. have instead addressed patient waiting times through the use of local search. Their paper was mostly concerned with theoretical guarantees of optimality, because that is a well known caveat to local search. Although their model allows no-shows, it does not ameliorate them.\cite{kaandorp2007}
+
+\section{Approach}
+
+We had planned to combine past approaches -- account for individual susceptibilities to no-showing while also taking into account the wait times for people who do show up. We ask patients to pick their preferred appointment times, and then use a Constraint Satisfaction Problem (CSP) solver to schedule appointments for the next few days that are acceptable to everyone involved. Our proposed changes to Bailey-Welch were to be
+
+\begin{enumerate}
+\item Use linear regression to predict which patients will end up not showing up, book two appointments for these individuals, and overbook said appointments as well.
+\item Schedule appointments close to the user's preferred time, if possible.
+\item Schedule appointments closely together (so that 20 minute appointments are scheduled only 10 minutes apart).
+\item Remind users 30 minutes before their scheduled appointment, and ask if they still want to come given the estimated wait time.
+\end{enumerate}
+
+The first change results in less expected physician idle time -- if the patient doesn't show up, there's another to take his place. This spreads the risk out. Unfortunately, due to time constraints, we did not implement this as a modification to the $Alldiff$ constraint on appointment times. 
+
+The second change is intended to decrease no-show rates. Since the CSP solvers we came across (Logilab's Python \emph{constraint} library and Labix's Python \emph{python-constraint} library) took an entire minute or more just to find a solution for 10 patients, we relaxed our approach to simply use patient preferences as a heuristic. If a patient's preferred time slot was indeed available, we would book that for him/her. If not, we would just book it the same way as in Bailey-Welch -- find the next available time slot. Performance of the schedule generated by this heuristic was similar to the schedule generated by the CSP solver for 10 patients; testing on more patients would have taken infeasible amounts of time, as the number of constraints grows exponentially with each new user.
+
+The third change results in severe patient backup in the waiting room as patients fill up faster than the doctor can take care of them. It keeps the doctor busy but keeps a lot of patients waiting. However, our introduction of the fourth change allows a lot of the patients that would have filled up the waiting room to skip it and come another day instead. This way, when there are few to no patients waiting, more can safely come in and wait; when there are already a respectable number waiting, we can convince the next couple patients to move to the next available appointment, where they will neither be a no-show nor have to wait for an excruciating amount of time. We do allow for patients to show up despite the presence of a long wait time, but greatly reduce the probabilities that they will do so.
+
+\subsection{Simulation}
+
+We simulated a clinic working 10 hours from 8 AM to 6 PM. A schedule is generated using either Bailey-Welch or our approach. Patients follow the schedule to either arrive on time, not at all (at which point the patient schedules a new appointment), or as a uniform distribution of tardiness between 0 and 20 minutes. Patients are inserted into a first-in first-out (FIFO) queue in the waiting room. The doctor sees one patient at a time, and goes on to the next patient (if there is one) as soon as he is done with his current patient. Time spent in the doctor's room is modeled as a Poisson process with a $\lambda$ (expected value) of 20 minutes.
+
+\subsection{Evalulation function}
+
+Every minute an individual patient spends in the waiting room is counted towards the cumulative patient wait time $t_p$. If the doctor is finished with his current patient, every minute he spends without a patient (i.e. every minute that the waiting room is empty while he is waiting for the next patient) counts towards his idle time $t_i$. Every minute the doctor spends still working on patients after closing hours at 6 PM is counted as overtime $t_o$. Our evaluation for the ``goodness'' of a simulation of a given scheduled is then given as
+
+\begin{equation}
+Evaluation(schedule) = t_p + 10 \cdot t_i + 20 \cdot t_o
+\end{equation}
+
+Our reasoning is that physician idle time is worth much more than patient wait time, not only due to the fact that the physician is the one providing a service to recipients (patients), but also because clinics are the ones who ultimately decide whether or not to implement one scheduling system over another, so they would tend to value physician time more as well. Hence, overtime being twice as bad as idle time -- the doctor would abhor having to stay past his already (hypothetically) 10-hour long workday. Of course, a case can also be made (in the case that the clinic mostly services a few wealthy patrons) that the patient is the customer, and the clinic should make greater efforts to make its customers happy.
+
+\section{Results}
+
+Even if one uses different weights for the evaluation function, our approach performs quite favorably to Bailey-Welch in most circumstances:
+
+\begin{table}[h]
+\centering
+
+\begin{tabular}{| c||c c|| c c c c |}
+\hline
+ \multirow{2}{*}{Approach} & \multicolumn{2}{c ||}{Parameters} & \multicolumn{4}{c|}{Results}\\
+  & Appt. Interval & Patients & $t_i$ & $t_o$ & $t_p$ & Evaluation \\
+  \hline\hline
+  Bailey-Welch & \multirow{2}{*}{10 min.} & \multirow{2}{*}{100} & 594 & 799 & 21,640  & \textbf{43,560}\\
+  Ours         &                          &                      & 455 & 42  & 3,151   & \textbf{8,541}\\
+  \hline
+  Bailey-Welch & \multirow{2}{*}{10 min.} & \multirow{2}{*}{120} & 181 & 801 & 20,549  & \textbf{38,379}\\
+  Ours         &                          &                      & 121 & 119 & 3,853   & \textbf{7,443}\\
+  \hline
+  Bailey-Welch & \multirow{2}{*}{20 min.} & \multirow{2}{*}{100} & 425 & 26  & 1,248   & \textbf{6,018}\\
+  Ours         &                          &                      & 492 & 30  & 1,113   & \textbf{6,633}\\
+  \hline
+  Bailey-Welch & \multirow{2}{*}{20 min.} & \multirow{2}{*}{120}  & 679 & 53  & 2,836   & \textbf{10,686}\\
+  Ours         &                          &                      & 90  & 82  & 2,401   & \textbf{4,941}\\
+  \hline
+  Bailey-Welch & \multirow{2}{*}{30 min.} & \multirow{2}{*}{60}  & 1,147 & 3 & 166     & \textbf{11,696}\\
+  Ours         &                          &                      & 1,209 & 0 & 538     & \textbf{12,628}\\
+  \hline
+\end{tabular}
+\caption{Representative simulations of how different schedules would play out over a week, given the number of patients attending that week and how closely appointments are spaced together. Lower is better.}
+\label{tab:results}
+\end{table}
+
+It would appear, according to Table~\ref{tab:results}, that for high-throughput situations where the physician has little to no idle time, our solution is superior. For more leisurely situations where the physician has much idle time, scheduling does not matter quite so much, and we even lose out a little due to patients arriving more consistently than in Bailey-Welch (and thus contributing more consistently to any queue that forms).
+
+\section{Conclusion}
+
+Our approach compares quite favorably to Bailey-Welch in most circumstances, especially when we are modeling a busy clinic with a high number of patients. In such cases, we manage to successfully cut down on physician idle time as well as overtime, and we especially manage to cut down on patient wait time. When we are simulating a less busy clinic with fewer patients, the scheduling aspect becomes less important since physicians will have a good amount of downtime anyways, so no-shows are less costly.
+
+This shows promise that overbooking combined with real-time notifications to patients and reactive rescheduling can improve both sides of the healthcare scheduling problem -- physicians spend less time being idle and work less overtime, while patients also manage to enjoy much fewer negative effects from the overbooking.
+
+\subsection{Future work}
+
+Of course, our proposed system still has to be tested in an actual hospital before we can say for sure how well it really works. It relies on a few assumptions that may have to be changed for future work:
+
+First, that going to an appointment at 2 PM one day versus 2 PM another day makes little difference to a patient. This may not be true -- perhaps the patient has certain functions he needs to attend on Tuesdays, and therefore cannot make any appointments on Tuesdays. However, our system can easily be extended to account for this. Instead of only allowing the patient to input preferred appointment hours throughout a generic day, allow the user to input preferred appointment times throughout a generic week. Alternatively, we can come up with suggested appointment times for a patient and ask if that is a good time for him or her.
+
+Second, and more seriously, the decision whether or not to skip the current appointment based on estimated current wait times might not be one to be made lightly. Perhaps the patient already took a sick day off for this and cannot afford to take another sick day off. Or perhaps this is an urgent care clinic, where appointments can be expected to not be made ahead of time. In any case, patients showing up even when the queue is already long will exacerbate the patient wait times by quite a bit. We can potentially extend the system to take care of this by booking fewer appointments right before such patients come in, so that when they do come they won't have a large queue to deal with.
+
+\subsubsection*{Acknowledgments}
+
+Thanks to the instructors, Dr. Brunskill and Dr. Veloso, and the teaching assistants, Shayan Doroudi and Vittorio Perera, for an amazing course.
+
+\subsubsection*{References}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+
+\end{document}
+
